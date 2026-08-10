@@ -1,0 +1,10 @@
+# 앱 아이콘 생성 설정. 원본은 assets/icon/*.png (1024x1024).
+# 재생성: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "assets/icon/icon_bg.png"
+  adaptive_icon_foreground: "assets/icon/icon_fg.png"
+  adaptive_icon_monochrome: "assets/icon/icon_mono.png"
+  remove_alpha_ios: true
