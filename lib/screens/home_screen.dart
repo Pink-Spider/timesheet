@@ -8,6 +8,7 @@ import '../models/app_settings.dart';
 import '../providers/settings_provider.dart';
 import '../providers/timesheet_provider.dart';
 import '../utils/time_calculator.dart';
+import '../widgets/record_edit_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -132,7 +133,17 @@ class _HomeScreenState extends State<HomeScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          _StatusCard(timesheet: timesheet, settings: settings),
+          _StatusCard(
+            timesheet: timesheet,
+            settings: settings,
+            onTap: (timesheet.openRecord ?? timesheet.todayRecord) == null
+                ? null
+                : () => showRecordEditSheet(
+                      context,
+                      (timesheet.openRecord ?? timesheet.todayRecord)!
+                          .clockIn!,
+                    ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -213,10 +224,15 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.timesheet, required this.settings});
+  const _StatusCard({
+    required this.timesheet,
+    required this.settings,
+    this.onTap,
+  });
 
   final TimesheetProvider timesheet;
   final AppSettings settings;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -250,23 +266,30 @@ class _StatusCard extends StatelessWidget {
     }
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.circle, size: 14, color: color),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: .start,
-                children: [
-                  Text(statusText, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 2),
-                  Text(detailText, style: theme.textTheme.bodySmall),
-                ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.circle, size: 14, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: .start,
+                  children: [
+                    Text(statusText, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(detailText, style: theme.textTheme.bodySmall),
+                  ],
+                ),
               ),
-            ),
-          ],
+              if (onTap != null)
+                Icon(Icons.edit_outlined,
+                    size: 18, color: theme.colorScheme.outline),
+            ],
+          ),
         ),
       ),
     );
