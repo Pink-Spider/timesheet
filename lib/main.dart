@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -9,8 +11,10 @@ import 'db/database_helper.dart';
 import 'providers/settings_provider.dart';
 import 'providers/timesheet_provider.dart';
 import 'screens/main_shell.dart';
+import 'services/ad_service.dart';
 import 'services/export_service.dart';
 import 'services/notification_service.dart';
+import 'services/purchase_service.dart';
 
 /// 퀵 액션 결과를 화면 어디서든 스낵바로 알리기 위한 전역 키.
 final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -21,6 +25,7 @@ Future<void> main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final settings = SettingsProvider(prefs);
+  final purchases = PurchaseService(prefs);
 
   final notifications = NotificationService();
   await notifications.init();
@@ -55,7 +60,15 @@ Future<void> main() async {
     timesheet: timesheet,
     settings: settings,
     notifications: notifications,
+    purchases: purchases,
   ));
+
+  // 광고·결제 초기화는 첫 화면을 막지 않도록 백그라운드로 진행한다.
+  // 광고 제거를 구매한 사용자는 광고 SDK를 아예 초기화하지 않는다.
+  unawaited(purchases.init());
+  if (!purchases.adsRemoved) {
+    unawaited(AdService.instance.init());
+  }
 }
 
 /// 앱 아이콘을 길게 눌러 앱 진입과 동시에 출근/퇴근을 기록한다.
@@ -94,11 +107,13 @@ class TimesheetApp extends StatelessWidget {
     required this.timesheet,
     required this.settings,
     this.notifications,
+    this.purchases,
   });
 
   final TimesheetProvider timesheet;
   final SettingsProvider settings;
   final NotificationService? notifications;
+  final PurchaseService? purchases;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +124,8 @@ class TimesheetApp extends StatelessWidget {
         Provider<ExportService>(create: (_) => ExportService()),
         if (notifications != null)
           Provider<NotificationService>.value(value: notifications!),
+        if (purchases != null)
+          ChangeNotifierProvider<PurchaseService>.value(value: purchases!),
       ],
       child: MaterialApp(
         title: '타임시트',

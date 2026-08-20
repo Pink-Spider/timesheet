@@ -6,6 +6,7 @@ import '../providers/settings_provider.dart';
 import '../providers/timesheet_provider.dart';
 import '../services/export_service.dart';
 import '../services/notification_service.dart';
+import '../services/purchase_service.dart';
 import '../utils/time_calculator.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -15,6 +16,8 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
     final settings = settingsProvider.settings;
+    // 위젯 테스트에서는 등록되지 않으므로 nullable로 조회한다.
+    final purchases = context.watch<PurchaseService?>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('설정')),
@@ -104,6 +107,40 @@ class SettingsScreen extends StatelessWidget {
                   Text('출근 + ${formatMinutes(settings.reminderOffsetMinutes)}'),
               onTap: () => _editReminderOffset(context, settingsProvider),
             ),
+          if (purchases != null) ...[
+            const Divider(),
+            const _SectionHeader('광고'),
+            if (purchases.adsRemoved)
+              const ListTile(
+                leading: Icon(Icons.check_circle_outline),
+                title: Text('광고 제거됨'),
+                subtitle: Text('구매해 주셔서 감사합니다.'),
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.remove_circle_outline),
+                title: const Text('광고 제거'),
+                subtitle: Text(purchases.product == null
+                    ? '스토어에 연결할 수 없습니다.'
+                    : '한 번만 구매하면 모든 광고가 사라집니다.'),
+                trailing: purchases.pending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(purchases.product?.price ?? ''),
+                enabled: purchases.product != null && !purchases.pending,
+                onTap: purchases.buyRemoveAds,
+              ),
+              ListTile(
+                leading: const Icon(Icons.history),
+                title: const Text('구매 복원'),
+                subtitle: const Text('재설치·기기 변경 후 이전 구매를 복원'),
+                onTap: () => _restorePurchases(context, purchases),
+              ),
+            ],
+          ],
           const Divider(),
           const _SectionHeader('데이터'),
           ListTile(
@@ -353,6 +390,19 @@ class SettingsScreen extends StatelessWidget {
         provider.settings.copyWith(reminderOffsetMinutes: offset));
     if (context.mounted) {
       await _rescheduleForOpenRecord(context, offset);
+    }
+  }
+
+  // ---- 광고 ----
+
+  Future<void> _restorePurchases(
+      BuildContext context, PurchaseService purchases) async {
+    // 복원 결과는 purchaseStream으로 돌아와 adsRemoved에 반영된다.
+    await purchases.restore();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('구매 내역을 확인하고 있습니다.')),
+      );
     }
   }
 

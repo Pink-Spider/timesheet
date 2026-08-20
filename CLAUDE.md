@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`timesheet` — 개인용 출퇴근 기록 Flutter 앱 (Dart SDK ^3.12.2). 서버 없이 100% 오프라인으로 동작하며, 모든 데이터는 로컬 sqlite(sqflite)와 SharedPreferences에 저장된다. UI 문자열은 한국어. Android(`android/`)와 iOS(`ios/`)만 타겟.
+`timesheet` — 개인용 출퇴근 기록 Flutter 앱 (Dart SDK ^3.12.2). 자체 서버 없이 동작하며, 모든 사용자 데이터는 로컬 sqlite(sqflite)와 SharedPreferences에 저장된다(네트워크는 AdMob 광고 로드에만 사용, 오프라인이어도 전 기능 동작). UI 문자열은 한국어. Android(`android/`)와 iOS(`ios/`)만 타겟.
 
-기능: 버튼 출퇴근 기록, 오프라인 달력(table_calendar), 주간/월간 근무 통계, 초과근무 계산, 연차 관리(반차 지원), 과거 기록 수정, 평일 퇴근 리마인더 알림, CSV 내보내기, JSON 백업/복원, 앱 아이콘 퀵 액션(길게 눌러 출근/퇴근).
+기능: 버튼 출퇴근 기록, 오프라인 달력(table_calendar), 주간/월간 근무 통계, 초과근무 계산, 연차 관리(반차 지원), 과거 기록 수정, 평일 퇴근 리마인더 알림, CSV 내보내기, JSON 백업/복원, 앱 아이콘 퀵 액션(길게 눌러 출근/퇴근), AdMob 배너(통계·달력 탭만) + "광고 제거" 비소모성 인앱결제.
 
 ## Commands
 
@@ -30,7 +30,8 @@ dart run flutter_launcher_icons     # assets/icon/*.png 변경 후 앱 아이콘
 - `lib/db/database_helper.dart` — sqflite CRUD. 테스트에서는 `DatabaseHelper(dbPath: inMemoryDatabasePath)` + `sqflite_common_ffi`
 - `lib/utils/time_calculator.dart` — **모든 정책이 모이는 순수 함수 계층** (아래 참고)
 - `lib/providers/` — `TimesheetProvider`(기록/연차 상태, 출퇴근 트랜지션), `SettingsProvider`(SharedPreferences)
-- `lib/services/` — `NotificationService`(퇴근 리마인더: 출근시각+오프셋 일회성 알림, 출근 시 예약/퇴근 시 취소 — `TimesheetProvider`의 onClockIn/onClockOut 훅으로 연결), `ExportService`(CSV/백업)
+- `lib/services/` — `NotificationService`(퇴근 리마인더: 출근시각+오프셋 일회성 알림, 출근 시 예약/퇴근 시 취소 — `TimesheetProvider`의 onClockIn/onClockOut 훅으로 연결), `ExportService`(CSV/백업), `AdService`(UMP 동의 → MobileAds 초기화, 배너 광고 단위 ID 보유 — 디버그는 구글 테스트 ID), `PurchaseService`(`remove_ads` 비소모성 IAP, adsRemoved 플래그를 SharedPreferences에 저장)
+- 광고 규칙: 배너는 `AdBanner` 위젯 하나로, `MainShell`이 NavigationBar 바로 위에서 달력·통계 탭일 때만 트리에 넣는다(숨김이 아니라 제거 — 안 보이는 광고가 노출 집계되면 정책 위반). 홈·설정·퀵 액션 경로는 무광고. 광고 제거 구매 시 `AdService.init()` 자체를 건너뛴다. `AdService.init()`/`PurchaseService.init()`은 main()에서만 호출(위젯 테스트에서 플랫폼 채널 미사용 규칙) — `AdBanner`와 설정 화면은 `context.watch<PurchaseService?>()`로 nullable 조회하므로 테스트 트리에서는 광고 UI가 아예 없다
 - `lib/screens/` — `MainShell`(NavigationBar) 아래 홈/달력/통계/설정 4탭, `lib/widgets/` — 기록/연차 편집 바텀 시트
 - `lib/main.dart` — 부트스트랩. 프로바이더는 `runApp` 전에 생성해 퀵 액션 핸들러와 공유
 
@@ -57,4 +58,6 @@ dart run flutter_launcher_icons     # assets/icon/*.png 변경 후 앱 아이콘
 - Android는 core library desugaring이 켜져 있다(`android/app/build.gradle.kts`) — flutter_local_notifications 요구사항.
 - 위젯 테스트는 sqflite_common_ffi로 실제 DB 경로를 대체하고 `SharedPreferences.setMockInitialValues`를 사용한다. 알림/퀵 액션 초기화는 `main()`에만 있어 위젯 테스트에서 플랫폼 채널을 건드리지 않는다.
 - 코드가 Dart dot-shorthand 문법(`.fromSeed(...)`, `.center`)을 사용한다 — 문법 오류가 아니다.
-- Linting은 표준 `flutter_lints` 룰셋 (`analysis_options.yaml`), 커스텀 룰 없음.
+- Linting은 표준 `flutter_lints` 룰셋 (`analysis_options.yaml`), 커스텀 룰 없음. analyzer가 `build/**`를 제외한다 — iOS SwiftPM이 build/ 아래에 받는 플러그인 소스가 분석에 잡히는 것을 막기 위함.
+- AdMob App ID는 `AndroidManifest.xml`/`Info.plist`에, 배너 광고 단위 ID는 `AdService`에 있다(실제 발급 ID 적용됨). 디버그 빌드는 광고 단위만 구글 테스트 ID로 자동 전환된다 — 실광고를 개발 중 노출/클릭하면 계정 정지 위험. `google_mobile_ads` v9는 `AdSize.getLargeAnchoredAdaptiveBannerAdSizeWithOrientation` 사용(무접미사·CurrentOrientation 변형은 deprecated).
+- IAP 제품 ID `remove_ads`는 Play Console·App Store Connect 양쪽에 동일하게 등록해야 한다. 영수증 검증 서버 없음 — 스토어 결제 + `구매 복원`(iOS 심사 필수 요건)으로만 처리.

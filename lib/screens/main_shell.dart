@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/ad_banner.dart';
 import 'calendar_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -18,13 +19,22 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: const [
-          HomeScreen(),
-          CalendarScreen(),
-          StatsScreen(),
-          SettingsScreen(),
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: _index,
+              children: const [
+                HomeScreen(),
+                CalendarScreen(),
+                StatsScreen(),
+                SettingsScreen(),
+              ],
+            ),
+          ),
+          // 광고 정책: 체류형 화면인 달력(1)·통계(2) 탭에서만 배너 노출.
+          // 트리에서 아예 제거해야 숨은 광고가 노출로 집계되는 일이 없다.
+          if (_index == 1 || _index == 2) const AdBanner(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
