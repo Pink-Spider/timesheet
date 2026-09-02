@@ -107,7 +107,11 @@ class SettingsScreen extends StatelessWidget {
                   Text('출근 + ${formatMinutes(settings.reminderOffsetMinutes)}'),
               onTap: () => _editReminderOffset(context, settingsProvider),
             ),
-          if (purchases != null) ...[
+          // 스토어에서 상품을 못 불러온 상태(미연결·계약 미활성 등)에서는
+          // 섹션을 아예 그리지 않는다 — 오류 문구를 보여주면 App Store
+          // 심사에서 IAP 결함(가이드라인 2.1b)으로 거부된다.
+          if (purchases != null &&
+              (purchases.adsRemoved || purchases.product != null)) ...[
             const Divider(),
             const _SectionHeader('광고'),
             if (purchases.adsRemoved)
@@ -120,9 +124,7 @@ class SettingsScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.remove_circle_outline),
                 title: const Text('광고 제거'),
-                subtitle: Text(purchases.product == null
-                    ? '스토어에 연결할 수 없습니다.'
-                    : '한 번만 구매하면 모든 광고가 사라집니다.'),
+                subtitle: const Text('한 번만 구매하면 모든 광고가 사라집니다.'),
                 trailing: purchases.pending
                     ? const SizedBox(
                         width: 20,
@@ -130,7 +132,7 @@ class SettingsScreen extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(purchases.product?.price ?? ''),
-                enabled: purchases.product != null && !purchases.pending,
+                enabled: !purchases.pending,
                 onTap: purchases.buyRemoveAds,
               ),
               ListTile(

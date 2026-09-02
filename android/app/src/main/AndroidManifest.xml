@@ -46,7 +46,7 @@
         <!-- AdMob 앱 ID. 없거나 틀리면 앱이 시작 시점에 크래시한다. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-6450383918866901~8485494630" />
+            android:value="ca-app-pub-6329038356545416~4417923979" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

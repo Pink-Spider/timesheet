@@ -79,7 +79,7 @@
 	<false/>
 	<!-- AdMob 앱 ID. 없거나 틀리면 앱이 시작 시점에 크래시한다. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-6450383918866901~1679699120</string>
+	<string>ca-app-pub-6329038356545416~6852515622</string>
 	<!-- 맞춤 광고용 ATT 권한 문구. 거부해도 앱 기능에는 영향 없음 -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>더 관련성 높은 광고를 보여주기 위해 추적 권한을 요청합니다. 허용하지 않아도 앱의 모든 기능을 그대로 사용할 수 있습니다.</string>
