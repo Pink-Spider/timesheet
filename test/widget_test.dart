@@ -21,7 +21,13 @@ void main() {
   Future<(TimesheetProvider, SettingsProvider)> buildProviders() async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
+    // NoIsolate ffi 팩토리는 in-memory DB를 프로세스 안에서 공유하므로,
+    // 앞 테스트의 기록이 남지 않게 테이블을 비우고 시작한다.
+    // (deleteDatabase는 FakeAsync 존에서 완료되지 않아 쓸 수 없다.)
     final db = DatabaseHelper(dbPath: inMemoryDatabasePath);
+    final raw = await db.database;
+    await raw.delete('work_records');
+    await raw.delete('leave_entries');
     final timesheet = TimesheetProvider(db);
     await timesheet.load();
     return (timesheet, SettingsProvider(prefs));
@@ -57,5 +63,55 @@ void main() {
 
     expect(find.text('퇴근 완료'), findsOneWidget);
     expect(timesheet.todayRecord?.isComplete, isTrue);
+  });
+
+  testWidgets('근무 중 기록은 수정 시트에서 저장해도 퇴근 시간이 생기지 않는다',
+      (tester) async {
+    final (timesheet, settings) = await buildProviders();
+
+    await tester.pumpWidget(
+      TimesheetApp(timesheet: timesheet, settings: settings),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, '출근'));
+    await tester.pump();
+
+    // 홈 상태 카드를 탭하면 기록 수정 시트가 열린다.
+    await tester.tap(find.text('근무 중'));
+    await tester.pumpAndSettle();
+
+    // 퇴근 필드는 기본값으로 채워지지 않고 빈칸이어야 한다.
+    expect(find.text('--:--'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(timesheet.todayRecord?.clockOut, isNull);
+    expect(timesheet.status, ClockStatus.working);
+  });
+
+  testWidgets('수정 시트에서 퇴근 시간을 지우고 저장하면 다시 근무 중이 된다',
+      (tester) async {
+    final (timesheet, settings) = await buildProviders();
+
+    await tester.pumpWidget(
+      TimesheetApp(timesheet: timesheet, settings: settings),
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, '출근'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '퇴근'));
+    await tester.pump();
+
+    await tester.tap(find.text('퇴근 완료'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(timesheet.todayRecord?.clockOut, isNull);
+    expect(timesheet.status, ClockStatus.working);
   });
 }

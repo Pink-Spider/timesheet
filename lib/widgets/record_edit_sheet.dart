@@ -56,7 +56,9 @@ class _RecordEditSheetState extends State<_RecordEditSheet> {
       _clockOut = TimeOfDay.fromDateTime(_existing!.clockOut!);
       _clockOutNextDay =
           dateKey(_existing!.clockOut!) != _existing!.date;
-    } else {
+    } else if (_existing == null) {
+      // 새 기록을 만들 때만 기본 퇴근 시간을 제안한다. 근무 중인(퇴근 없는)
+      // 기존 기록은 빈칸 그대로 두어 저장해도 퇴근이 찍히지 않게 한다.
       final end = parseHHmm(settings.workEnd);
       if (end != null) {
         _clockOut = TimeOfDay(hour: end.hour, minute: end.minute);
@@ -166,6 +168,12 @@ class _RecordEditSheetState extends State<_RecordEditSheet> {
                           alwaysUse24HourFormat: true)
                       : '--:--',
                   onTap: () => _pickTime(isClockIn: false),
+                  onClear: _clockOut != null
+                      ? () => setState(() {
+                            _clockOut = null;
+                            _clockOutNextDay = false;
+                          })
+                      : null,
                 ),
               ),
             ],
@@ -174,7 +182,10 @@ class _RecordEditSheetState extends State<_RecordEditSheet> {
             contentPadding: EdgeInsets.zero,
             title: const Text('퇴근이 다음 날 (자정 넘김)'),
             value: _clockOutNextDay,
-            onChanged: (v) => setState(() => _clockOutNextDay = v),
+            // 퇴근 시간이 비어 있으면 의미가 없으므로 비활성화한다.
+            onChanged: _clockOut != null
+                ? (v) => setState(() => _clockOutNextDay = v)
+                : null,
           ),
           TextField(
             controller: _noteController,
@@ -202,11 +213,15 @@ class _TimeField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    this.onClear,
   });
 
   final String label;
   final String value;
   final VoidCallback onTap;
+
+  /// null이 아니면 값 지우기(✕) 버튼을 보여준다.
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +229,16 @@ class _TimeField extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: onClear != null
+              ? IconButton(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close, size: 18),
+                  tooltip: '$label 시간 지우기',
+                )
+              : null,
+        ),
         child: Text(value, style: Theme.of(context).textTheme.titleMedium),
       ),
     );
