@@ -14,6 +14,8 @@ enum BreakPolicy {
 class AppSettings {
   const AppSettings({
     this.totalAnnualLeave = 15.0,
+    this.leaveUsedAdjustment = 0.0,
+    this.leaveAdjustmentYearKey = '',
     this.leaveYearStartMonth = 1,
     this.leaveYearStartDay = 1,
     this.standardDailyMinutes = 480,
@@ -28,6 +30,16 @@ class AppSettings {
 
   /// 총 연차 (일 단위, 반차 지원을 위해 double)
   final double totalAnnualLeave;
+
+  /// 사용 연차 수동 보정값(일). 달력 기록에서 집계한 사용 연차에 더해진다.
+  /// 연중에 앱을 도입해 이전 사용분을 반영하거나 회사 기록과 맞출 때 쓴다.
+  /// 기록과 별개로 유지되므로 이후 달력에 연차를 추가하면 사용 연차가 함께 늘어난다.
+  final double leaveUsedAdjustment;
+
+  /// [leaveUsedAdjustment]가 적용되는 연차년도 시작일 키('yyyy-MM-dd').
+  /// 연차년도가 바뀌면 키가 어긋나 보정값이 자동으로 무효가 된다 — 새 연차년도의
+  /// 사용 연차가 지난해 보정값을 물고 시작하는 것을 막는다.
+  final String leaveAdjustmentYearKey;
 
   /// 연차년도 기준일 (회계연도면 1/1, 입사일 기준이면 해당 월/일)
   final int leaveYearStartMonth;
@@ -57,6 +69,8 @@ class AppSettings {
 
   AppSettings copyWith({
     double? totalAnnualLeave,
+    double? leaveUsedAdjustment,
+    String? leaveAdjustmentYearKey,
     int? leaveYearStartMonth,
     int? leaveYearStartDay,
     int? standardDailyMinutes,
@@ -70,6 +84,9 @@ class AppSettings {
   }) {
     return AppSettings(
       totalAnnualLeave: totalAnnualLeave ?? this.totalAnnualLeave,
+      leaveUsedAdjustment: leaveUsedAdjustment ?? this.leaveUsedAdjustment,
+      leaveAdjustmentYearKey:
+          leaveAdjustmentYearKey ?? this.leaveAdjustmentYearKey,
       leaveYearStartMonth: leaveYearStartMonth ?? this.leaveYearStartMonth,
       leaveYearStartDay: leaveYearStartDay ?? this.leaveYearStartDay,
       standardDailyMinutes: standardDailyMinutes ?? this.standardDailyMinutes,
@@ -87,6 +104,8 @@ class AppSettings {
 
   Map<String, Object?> toMap() => {
         'totalAnnualLeave': totalAnnualLeave,
+        'leaveUsedAdjustment': leaveUsedAdjustment,
+        'leaveAdjustmentYearKey': leaveAdjustmentYearKey,
         'leaveYearStartMonth': leaveYearStartMonth,
         'leaveYearStartDay': leaveYearStartDay,
         'standardDailyMinutes': standardDailyMinutes,
@@ -105,6 +124,10 @@ class AppSettings {
       totalAnnualLeave:
           (map['totalAnnualLeave'] as num?)?.toDouble() ??
               defaults.totalAnnualLeave,
+      leaveUsedAdjustment: (map['leaveUsedAdjustment'] as num?)?.toDouble() ??
+          defaults.leaveUsedAdjustment,
+      leaveAdjustmentYearKey: map['leaveAdjustmentYearKey'] as String? ??
+          defaults.leaveAdjustmentYearKey,
       leaveYearStartMonth:
           map['leaveYearStartMonth'] as int? ?? defaults.leaveYearStartMonth,
       leaveYearStartDay:

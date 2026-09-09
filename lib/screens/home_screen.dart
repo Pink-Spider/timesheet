@@ -113,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
       endExclusive: weekStart.add(const Duration(days: 7)),
       settings: settings,
     );
-    final leaveUsed = leaveUsedInCurrentYear(timesheet.leaves, settings);
+    final leaveUsed = leaveUsage(timesheet.leaves, settings).total;
     final leaveRemaining = settings.totalAnnualLeave - leaveUsed;
 
     return Scaffold(

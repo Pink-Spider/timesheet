@@ -8,6 +8,8 @@ class SettingsProvider extends ChangeNotifier {
   SettingsProvider(this._prefs) : _settings = _read(_prefs);
 
   static const _keyTotalLeave = 'totalAnnualLeave';
+  static const _keyLeaveAdjustment = 'leaveUsedAdjustment';
+  static const _keyLeaveAdjustmentYear = 'leaveAdjustmentYearKey';
   static const _keyLeaveStartMonth = 'leaveYearStartMonth';
   static const _keyLeaveStartDay = 'leaveYearStartDay';
   static const _keyStandardDaily = 'standardDailyMinutes';
@@ -29,6 +31,10 @@ class SettingsProvider extends ChangeNotifier {
     return AppSettings(
       totalAnnualLeave:
           prefs.getDouble(_keyTotalLeave) ?? d.totalAnnualLeave,
+      leaveUsedAdjustment:
+          prefs.getDouble(_keyLeaveAdjustment) ?? d.leaveUsedAdjustment,
+      leaveAdjustmentYearKey: prefs.getString(_keyLeaveAdjustmentYear) ??
+          d.leaveAdjustmentYearKey,
       leaveYearStartMonth:
           prefs.getInt(_keyLeaveStartMonth) ?? d.leaveYearStartMonth,
       leaveYearStartDay:
@@ -51,6 +57,9 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> update(AppSettings next) async {
     _settings = next;
     await _prefs.setDouble(_keyTotalLeave, next.totalAnnualLeave);
+    await _prefs.setDouble(_keyLeaveAdjustment, next.leaveUsedAdjustment);
+    await _prefs.setString(
+        _keyLeaveAdjustmentYear, next.leaveAdjustmentYearKey);
     await _prefs.setInt(_keyLeaveStartMonth, next.leaveYearStartMonth);
     await _prefs.setInt(_keyLeaveStartDay, next.leaveYearStartDay);
     await _prefs.setInt(_keyStandardDaily, next.standardDailyMinutes);

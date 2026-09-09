@@ -44,12 +44,13 @@ dart run flutter_launcher_icons     # assets/icon/*.png 변경 후 앱 아이콘
 - **주 경계**: 주는 항상 월~일. 월간 통계와 독립적이며, 월간 화면의 주차별 분해는 그 달에 속한 날짜만 합산
 - **연차년도**: 설정의 기준일(월/일)부터 1년. 존재하지 않는 날짜(2/30)는 말일로 보정
 - **연차 인정**: 연차 1일 = 소정근로시간 1일로 통계 합계에 가산
+- **사용 연차**: 달력 기록 집계 + 설정의 수동 보정값(`leaveUsedAdjustment`). 설정 화면은 입력값 그대로가 아니라 **기록 집계와의 차이**를 보정값으로 저장하므로, 사용 연차를 직접 입력한 뒤에도 달력에 연차를 찍으면 사용량이 그만큼 늘어난다. 보정값은 저장 당시 연차년도(`leaveAdjustmentYearKey`)에만 유효 — 연차년도가 넘어가면 자동 무효가 되어 새 해가 기록만으로 시작한다. 통계의 근무시간 인정(`leaveCreditMinutes`)은 날짜가 있는 기록만 쓰므로 보정값의 영향을 받지 않는다
 - **자정 넘김**: 퇴근 기록은 출근한 날짜의 레코드에 저장 (`TimesheetProvider.openRecord`가 어제 미퇴근 기록까지 탐색)
 
 ## Release
 
 - 앱 ID `io.pinkspider.timesheet`, 표시명 `출퇴근기록장`(App Store에서 `출퇴근기록`이 선점되어 변경), Apple 팀 `Z53YTTRR32`.
-- 현재 버전 `1.0.0+8`. AdMob 게시자 ID `pub-6329038356545416`(구 계정에서 이전 완료 — 중복 계정 문제로 구 계정은 폐쇄).
+- 현재 버전 `1.0.1+9`. AdMob 게시자 ID `pub-6329038356545416`(구 계정에서 이전 완료 — 중복 계정 문제로 구 계정은 폐쇄).
 - Android 업로드 키스토어는 저장소 밖 `~/keystores/timesheet-upload.jks`, 비밀번호는 gitignore된 `android/key.properties`. 이 둘이 없으면 릴리즈 빌드는 디버그 키로 폴백된다 (Play 업로드 불가).
 - `android/settings.gradle.kts`의 AGP는 8.12로 고정 — AGP 9(Built-in Kotlin)는 file_picker/share_plus/flutter_timezone과 아직 비호환. 이 플러그인들이 Built-in Kotlin을 지원하기 전까지 AGP 9로 올리지 말 것.
 

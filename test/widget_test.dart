@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:timesheet/db/database_helper.dart';
 import 'package:timesheet/main.dart';
+import 'package:timesheet/models/leave_entry.dart';
 import 'package:timesheet/providers/settings_provider.dart';
 import 'package:timesheet/providers/timesheet_provider.dart';
+import 'package:timesheet/utils/time_calculator.dart';
 
 void main() {
   setUpAll(() async {
@@ -32,6 +34,38 @@ void main() {
     await timesheet.load();
     return (timesheet, SettingsProvider(prefs));
   }
+
+  testWidgets('설정에서 사용 연차를 직접 입력하면 남은 연차가 줄고, '
+      '달력 기록도 계속 반영된다', (tester) async {
+    final (timesheet, settings) = await buildProviders();
+    // 달력에 찍은 연차 1일 — 보정값과 합산되어야 한다.
+    await timesheet.saveLeave(
+      LeaveEntry(date: dateKey(DateTime.now()), amount: 1.0),
+    );
+
+    await tester.pumpWidget(
+      TimesheetApp(timesheet: timesheet, settings: settings),
+    );
+
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+
+    // 기록만 있는 상태: 사용 1일, 남은 14일 (총 연차 기본 15일)
+    expect(find.text('사용 연차'), findsOneWidget);
+    expect(find.text('달력에 기록한 연차'), findsOneWidget);
+    expect(find.text('14일'), findsOneWidget);
+
+    // 사용 연차를 3일로 직접 입력 → 보정값 2일이 저장된다.
+    await tester.tap(find.text('사용 연차'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '3');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(settings.settings.leaveUsedAdjustment, 2.0);
+    expect(find.text('기록 1일 + 직접 입력 2일'), findsOneWidget);
+    expect(find.text('12일'), findsOneWidget); // 남은 연차 15 - 3
+  });
 
   testWidgets('출근 버튼을 누르면 근무 중 상태가 된다', (tester) async {
     final (timesheet, settings) = await buildProviders();

@@ -16,6 +16,8 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsProvider = context.watch<SettingsProvider>();
     final settings = settingsProvider.settings;
+    // 사용 연차는 달력 기록에서 집계하므로 TimesheetProvider가 필요하다.
+    final usage = leaveUsage(context.watch<TimesheetProvider>().leaves, settings);
     // 위젯 테스트에서는 등록되지 않으므로 nullable로 조회한다.
     final purchases = context.watch<PurchaseService?>();
 
@@ -27,8 +29,24 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             title: const Text('총 연차'),
             subtitle: const Text('1년 동안 사용할 수 있는 연차 일수'),
-            trailing: Text('${settings.totalAnnualLeave}일'),
+            trailing: Text('${formatDays(settings.totalAnnualLeave)}일'),
             onTap: () => _editTotalLeave(context, settingsProvider),
+          ),
+          ListTile(
+            title: const Text('사용 연차'),
+            subtitle: Text(_usageBreakdown(usage)),
+            trailing: Text('${formatDays(usage.total)}일'),
+            onTap: () => _editUsedLeave(context, settingsProvider, usage),
+          ),
+          ListTile(
+            title: const Text('남은 연차'),
+            subtitle: const Text('총 연차 − 사용 연차'),
+            trailing: Text(
+              '${formatDays(settings.totalAnnualLeave - usage.total)}일',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
           ),
           ListTile(
             title: const Text('연차년도 기준일'),
@@ -194,6 +212,39 @@ class SettingsScreen extends StatelessWidget {
     );
     if (value == null) return;
     await provider.update(provider.settings.copyWith(totalAnnualLeave: value));
+  }
+
+  /// 사용 연차의 출처를 설명하는 부제. 보정값이 없으면 기록만 쓴다는 뜻.
+  String _usageBreakdown(LeaveUsage usage) {
+    if (usage.adjustment == 0) return '달력에 기록한 연차';
+    final records = formatDays(usage.fromRecords);
+    final adjust = formatDays(usage.adjustment.abs());
+    return usage.adjustment > 0
+        ? '기록 $records일 + 직접 입력 $adjust일'
+        : '기록 $records일 − 직접 입력 $adjust일';
+  }
+
+  Future<void> _editUsedLeave(BuildContext context, SettingsProvider provider,
+      LeaveUsage usage) async {
+    final value = await _promptNumber(
+      context,
+      title: '사용 연차',
+      suffix: '일',
+      initial: formatDays(usage.total),
+      allowDecimal: true,
+    );
+    if (value == null || value < 0) return;
+    final start = leaveYearStartFor(
+      DateTime.now(),
+      provider.settings.leaveYearStartMonth,
+      provider.settings.leaveYearStartDay,
+    );
+    // 입력값 자체가 아니라 기록 집계와의 차이를 저장한다 — 그래야 이후 달력에
+    // 연차를 찍었을 때 사용 연차가 그만큼 자동으로 늘어난다.
+    await provider.update(provider.settings.copyWith(
+      leaveUsedAdjustment: value - usage.fromRecords,
+      leaveAdjustmentYearKey: dateKey(start),
+    ));
   }
 
   Future<void> _editLeaveYearStart(
@@ -530,34 +581,72 @@ class SettingsScreen extends StatelessWidget {
     required String suffix,
     required String initial,
     bool allowDecimal = false,
-  }) async {
-    final controller = TextEditingController(text: initial);
-    final result = await showDialog<double>(
+  }) {
+    return showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          keyboardType:
-              TextInputType.numberWithOptions(decimal: allowDecimal),
-          autofocus: true,
-          decoration: InputDecoration(suffixText: suffix),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, double.tryParse(controller.text)),
-            child: const Text('저장'),
-          ),
-        ],
+      builder: (context) => _NumberInputDialog(
+        title: title,
+        suffix: suffix,
+        initial: initial,
+        allowDecimal: allowDecimal,
       ),
     );
-    controller.dispose();
-    return result;
+  }
+}
+
+/// 숫자 하나를 받는 다이얼로그.
+///
+/// 컨트롤러를 다이얼로그가 직접 소유한다 — 호출부에서 showDialog가 반환되자마자
+/// dispose하면 퇴장 애니메이션 중 리빌드가 이미 해제된 컨트롤러를 참조한다.
+class _NumberInputDialog extends StatefulWidget {
+  const _NumberInputDialog({
+    required this.title,
+    required this.suffix,
+    required this.initial,
+    required this.allowDecimal,
+  });
+
+  final String title;
+  final String suffix;
+  final String initial;
+  final bool allowDecimal;
+
+  @override
+  State<_NumberInputDialog> createState() => _NumberInputDialogState();
+}
+
+class _NumberInputDialogState extends State<_NumberInputDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        keyboardType:
+            TextInputType.numberWithOptions(decimal: widget.allowDecimal),
+        autofocus: true,
+        decoration: InputDecoration(suffixText: widget.suffix),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.pop(context, double.tryParse(_controller.text)),
+          child: const Text('저장'),
+        ),
+      ],
+    );
   }
 }
 

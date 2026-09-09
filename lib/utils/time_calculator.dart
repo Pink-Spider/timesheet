@@ -149,6 +149,42 @@ double leaveUsedInCurrentYear(
   return used;
 }
 
+/// 현재 연차년도의 사용 연차 내역.
+///
+/// [fromRecords]는 달력에 찍은 연차 기록의 합, [adjustment]는 설정에서 직접
+/// 입력한 보정값, [total]은 둘의 합(음수는 0으로 절삭).
+typedef LeaveUsage = ({double fromRecords, double adjustment, double total});
+
+/// 현재 연차년도의 사용 연차 — 기록 집계에 수동 보정값을 더한 값.
+///
+/// 보정값을 기록과 합치지 않고 따로 두는 이유: 사용자가 사용 연차를 직접
+/// 입력해도 이후 달력에 찍는 연차가 그대로 반영돼야 하기 때문이다.
+/// (설정 화면은 입력값과 [fromRecords]의 차이를 보정값으로 저장한다.)
+LeaveUsage leaveUsage(
+  Iterable<LeaveEntry> leaves,
+  AppSettings settings, {
+  DateTime? today,
+}) {
+  final now = today ?? DateTime.now();
+  final fromRecords = leaveUsedInCurrentYear(leaves, settings, today: now);
+  final start = leaveYearStartFor(
+    now,
+    settings.leaveYearStartMonth,
+    settings.leaveYearStartDay,
+  );
+  // 보정값은 입력 당시의 연차년도에만 유효하다. 연차년도가 넘어가면 사용 연차는
+  // 기록만으로 다시 0부터 시작해야 하므로 무시한다.
+  final adjustment = settings.leaveAdjustmentYearKey == dateKey(start)
+      ? settings.leaveUsedAdjustment
+      : 0.0;
+  final total = fromRecords + adjustment;
+  return (
+    fromRecords: fromRecords,
+    adjustment: adjustment,
+    total: total < 0 ? 0.0 : total,
+  );
+}
+
 /// '8시간 30분' 형태로 표시. 0분은 '0분'.
 String formatMinutes(int minutes) {
   final h = minutes ~/ 60;

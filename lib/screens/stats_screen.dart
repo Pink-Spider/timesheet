@@ -335,7 +335,7 @@ class _LeaveCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final timesheet = context.watch<TimesheetProvider>();
     final theme = Theme.of(context);
-    final used = leaveUsedInCurrentYear(timesheet.leaves, settings);
+    final used = leaveUsage(timesheet.leaves, settings).total;
     final total = settings.totalAnnualLeave;
     final remaining = total - used;
     final start = leaveYearStartFor(

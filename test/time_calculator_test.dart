@@ -232,6 +232,60 @@ void main() {
     });
   });
 
+  group('leaveUsage — 기록 + 수동 보정값', () {
+    final leaves = [
+      const LeaveEntry(date: '2026-03-02', amount: 1.0),
+      const LeaveEntry(date: '2026-08-06', amount: 0.5),
+    ];
+    final today = DateTime(2026, 8, 7);
+
+    test('보정값이 없으면 기록 집계와 같다', () {
+      const settings = AppSettings(); // 1/1 기준, 보정값 0
+      final usage = leaveUsage(leaves, settings, today: today);
+      expect(usage.fromRecords, 1.5);
+      expect(usage.adjustment, 0);
+      expect(usage.total, 1.5);
+    });
+
+    test('같은 연차년도의 보정값은 기록에 더해진다', () {
+      const settings = AppSettings(
+        leaveUsedAdjustment: 2.0,
+        leaveAdjustmentYearKey: '2026-01-01',
+      );
+      final usage = leaveUsage(leaves, settings, today: today);
+      expect(usage.total, 3.5);
+    });
+
+    test('보정 후 달력에 연차를 추가하면 사용 연차가 함께 늘어난다', () {
+      const settings = AppSettings(
+        leaveUsedAdjustment: 2.0,
+        leaveAdjustmentYearKey: '2026-01-01',
+      );
+      final more = [...leaves, const LeaveEntry(date: '2026-08-10', amount: 1.0)];
+      final usage = leaveUsage(more, settings, today: today);
+      expect(usage.total, 4.5);
+    });
+
+    test('연차년도가 바뀌면 지난해 보정값은 무시된다', () {
+      const settings = AppSettings(
+        leaveUsedAdjustment: 2.0,
+        leaveAdjustmentYearKey: '2025-01-01', // 작년 기준으로 저장된 보정값
+      );
+      final usage = leaveUsage(leaves, settings, today: today);
+      expect(usage.adjustment, 0);
+      expect(usage.total, 1.5);
+    });
+
+    test('음수 합계는 0으로 절삭한다', () {
+      const settings = AppSettings(
+        leaveUsedAdjustment: -5.0,
+        leaveAdjustmentYearKey: '2026-01-01',
+      );
+      final usage = leaveUsage(leaves, settings, today: today);
+      expect(usage.total, 0);
+    });
+  });
+
   group('formatMinutes / parseHHmm', () {
     test('분을 시간 문자열로 표시한다', () {
       expect(formatMinutes(0), '0분');
