@@ -6,6 +6,9 @@
 회원가입이 없고 기록이 외부로 전송되지 않아, 비행기 모드에서도 모든 기능이 그대로 동작합니다.
 네트워크는 배너 광고를 불러올 때만 사용합니다([광고](#광고) 참고).
 
+[![Google Play](https://img.shields.io/badge/Google_Play-다운로드-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=io.pinkspider.timesheet)
+[![App Store](https://img.shields.io/badge/App_Store-다운로드-0D96F6?logo=appstore&logoColor=white)](https://apps.apple.com/kr/app/id6798968684)
+
 | 홈 | 달력 | 통계 | 설정 |
 |---|---|---|---|
 | <img src="store/ss1_home.png" width="180"> | <img src="store/ss2_calendar.png" width="180"> | <img src="store/ss3_stats.png" width="180"> | <img src="store/ss4_settings.png" width="180"> |
