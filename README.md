@@ -6,8 +6,10 @@
 회원가입이 없고 기록이 외부로 전송되지 않아, 비행기 모드에서도 모든 기능이 그대로 동작합니다.
 네트워크는 배너 광고를 불러올 때만 사용합니다([광고](#광고) 참고).
 
-[![Google Play](https://img.shields.io/badge/Google_Play-다운로드-414141?logo=googleplay&logoColor=white)](https://play.google.com/store/apps/details?id=io.pinkspider.timesheet)
-[![App Store](https://img.shields.io/badge/App_Store-다운로드-0D96F6?logo=appstore&logoColor=white)](https://apps.apple.com/kr/app/id6798968684)
+<p>
+  <a href="https://apps.apple.com/kr/app/id6798968684"><img src="store/app-store-badge-ko-kr-black.svg" alt="App Store에서 다운로드" height="40" align="middle"></a>
+  <a href="https://play.google.com/store/apps/details?id=io.pinkspider.timesheet"><img src="https://play.google.com/intl/ko/badges/static/images/badges/ko_badge_web_generic.png" alt="Google Play에서 다운로드" height="60" align="middle"></a>
+</p>
 
 | 홈 | 달력 | 통계 | 설정 |
 |---|---|---|---|
@@ -52,3 +54,11 @@ flutter test
 다만 광고 표시를 위해 Google AdMob SDK가 광고 식별자·기기 정보 등을 수집할 수 있습니다.
 
 자세한 내용은 [개인정보처리방침](https://pink-spider.github.io/timesheet-privacy/)을 참고하세요.
+
+## 라이선스
+
+소스 코드는 [GPL-3.0](LICENSE)입니다. 이 코드로 앱을 만들어 배포하면 그 소스도 같은 조건으로
+공개해야 합니다. 다음은 GPL 대상이 **아니며** 모든 권리를 보유합니다: 앱 이름 '출퇴근기록장',
+아이콘·브랜드 자산(`assets/icon/`), 스토어 제출 자산과 등록 문구(`store/`).
+pub.dev에는 배포하지 않습니다 (`publish_to: none`).
+© 2026 Pink Spider

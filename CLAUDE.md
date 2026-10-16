@@ -30,11 +30,13 @@ dart run flutter_launcher_icons     # assets/icon/*.png 변경 후 앱 아이콘
 - `lib/db/database_helper.dart` — sqflite CRUD. 테스트에서는 `DatabaseHelper(dbPath: inMemoryDatabasePath)` + `sqflite_common_ffi`
 - `lib/utils/time_calculator.dart` — **모든 정책이 모이는 순수 함수 계층** (아래 참고)
 - `lib/providers/` — `TimesheetProvider`(기록/연차 상태, 출퇴근 트랜지션), `SettingsProvider`(SharedPreferences)
-- `lib/services/` — `NotificationService`(퇴근 리마인더: 출근시각+오프셋 일회성 알림, 출근 시 예약/퇴근 시 취소 — `TimesheetProvider`의 onClockIn/onClockOut 훅으로 연결), `ExportService`(CSV/백업), `AdService`(iOS ATT → UMP 동의 → MobileAds 초기화 순서 고정, 배너 광고 단위 ID 보유 — 디버그는 구글 테스트 ID), `PurchaseService`(`remove_ads` 비소모성 IAP, adsRemoved 플래그를 SharedPreferences에 저장)
+- `lib/services/` — `NotificationService`(퇴근 리마인더: 출근시각+오프셋 일회성 알림, 출근 시 예약/퇴근 시 취소 — `TimesheetProvider`의 onClockIn/onClockOut 훅으로 연결. 예약 유실 대비로 `main()`이 앱 시작 시 미퇴근 기록이 있으면 멱등 재예약), `ExportService`(CSV/백업), `AdService`(iOS ATT → UMP 동의 → MobileAds 초기화 순서 고정, 배너 광고 단위 ID 보유 — 디버그는 구글 테스트 ID), `PurchaseService`(`remove_ads` 비소모성 IAP, adsRemoved 플래그를 SharedPreferences에 저장)
 - 광고 규칙: 배너는 `AdBanner` 위젯 하나로, `MainShell`이 NavigationBar 바로 위에서 달력·통계 탭일 때만 트리에 넣는다(숨김이 아니라 제거 — 안 보이는 광고가 노출 집계되면 정책 위반). 홈·설정·퀵 액션 경로는 무광고. 광고 제거 구매 시 `AdService.init()` 자체를 건너뛴다. `AdService.init()`/`PurchaseService.init()`은 main()에서만 호출(위젯 테스트에서 플랫폼 채널 미사용 규칙) — `AdBanner`와 설정 화면은 `context.watch<PurchaseService?>()`로 nullable 조회하므로 테스트 트리에서는 광고 UI가 아예 없다
 - 설정 화면 "광고" 섹션은 `purchases.product == null`(스토어 미연결·유료 계약 미활성 등 상품 조회 실패)이면 오류 문구 대신 **섹션 자체를 그리지 않는다** — 결제 UI에 오류를 노출하면 App Store 심사 가이드라인 2.1b 거부 사유가 된다
 - `lib/screens/` — `MainShell`(NavigationBar) 아래 홈/달력/통계/설정 4탭, `lib/widgets/` — 기록/연차 편집 바텀 시트
-- `lib/main.dart` — 부트스트랩. 프로바이더는 `runApp` 전에 생성해 퀵 액션 핸들러와 공유
+- `lib/main.dart` — 부트스트랩. 프로바이더는 `runApp` 전에 생성해 퀵 액션 핸들러와 공유. 퀵 액션 핸들러는 화면 밖에서 실행되므로 전역 `rootScaffoldMessengerKey`로 스낵바를 띄운다. `TimesheetApp`의 `notifications`/`purchases`는 nullable — 위젯 테스트는 둘 다 빼고 띄운다. `PurchaseService`는 빌드 시 `watch<PurchaseService?>()`로 조회하지만 `NotificationService`는 설정 화면의 알림 토글 핸들러 안에서만 non-null `read`하므로, 테스트에서 알림 설정을 탭하면 ProviderNotFound가 난다
+- `store/` — Play Console·App Store 등록 문구(`store_listing.md`), 스크린샷·피처 그래픽, 개인정보처리방침 HTML(`privacy_policy.html`). 이 HTML은 별도 저장소 `timesheet-privacy`로 GitHub Pages에 게시된 페이지와 동일 내용 — 수정 시 양쪽을 함께 갱신
+- 스키마·백업 호환: DB는 `version: 1`이고 `onUpgrade`가 없다 — 테이블/컬럼을 바꾸면 버전을 올리고 마이그레이션을 추가할 것. JSON 백업(`ExportService.backupVersion`, `app: 'timesheet'` 마커)은 모델의 `fromMap`으로 복원되므로 `AppSettings`/`WorkRecord`/`LeaveEntry`에 필드를 추가할 때는 누락 키 기본값을 반드시 둘 것(과거 백업 파일 복원 호환). 복원은 DB·메모리·설정을 통째로 교체한다
 
 ## 정책 결정 지점 (lib/utils/time_calculator.dart)
 
@@ -59,7 +61,7 @@ dart run flutter_launcher_icons     # assets/icon/*.png 변경 후 앱 아이콘
 - 새 패키지 추가 시 버전을 직접 적지 말고 `flutter pub add`로 해결시킬 것. 현재 `share_plus`는 `file_picker`와의 win32 충돌 때문에 ^12로 고정되어 있다 (둘 다 올릴 땐 함께 해결 필요).
 - `flutter_local_notifications` v22는 모든 인자가 named (`initialize(settings:)`, `zonedSchedule(id:...)`, `cancel(id:)`), `file_picker` v11은 `FilePicker.pickFiles` static 호출.
 - Android는 core library desugaring이 켜져 있다(`android/app/build.gradle.kts`) — flutter_local_notifications 요구사항.
-- 위젯 테스트는 sqflite_common_ffi로 실제 DB 경로를 대체하고 `SharedPreferences.setMockInitialValues`를 사용한다. 알림/퀵 액션 초기화는 `main()`에만 있어 위젯 테스트에서 플랫폼 채널을 건드리지 않는다. `inMemoryDatabasePath`는 테스트 간에 같은 DB를 공유하므로 각 테스트 시작 시 `work_records`/`leave_entries`를 직접 delete 해 오염을 막는다.
+- 위젯 테스트는 sqflite_common_ffi로 실제 DB 경로를 대체하고 `SharedPreferences.setMockInitialValues`를 사용한다. 알림/퀵 액션 초기화는 `main()`에만 있어 위젯 테스트에서 플랫폼 채널을 건드리지 않는다. `testWidgets`는 FakeAsync 존에서 돌기 때문에 **`databaseFactory = databaseFactoryFfiNoIsolate`가 필수** — 기본 ffi 팩토리는 isolate 응답이 돌아오지 않아 테스트가 멈춘다. 같은 이유로 `deleteDatabase`도 완료되지 않으므로, `inMemoryDatabasePath`가 테스트 간에 공유하는 DB는 각 테스트 시작 시 `work_records`/`leave_entries`를 직접 delete 해 오염을 막는다. `setUpAll`에서 `initializeDateFormatting('ko_KR')`을 호출해야 `DateFormat(..., 'ko_KR')`이 동작한다.
 - 코드가 Dart dot-shorthand 문법(`.fromSeed(...)`, `.center`)을 사용한다 — 문법 오류가 아니다.
 - Linting은 표준 `flutter_lints` 룰셋 (`analysis_options.yaml`), 커스텀 룰 없음. analyzer가 `build/**`를 제외한다 — iOS SwiftPM이 build/ 아래에 받는 플러그인 소스가 분석에 잡히는 것을 막기 위함.
 - iOS 광고 초기화는 **ATT 팝업이 반드시 UMP·MobileAds보다 먼저** 떠야 한다(가이드라인 2.1). 앱 실행 직후에는 iOS가 팝업을 무시하므로 `AdService._requestTrackingAuthorization()`이 1초 지연 후 요청한다 — 이 지연을 지우지 말 것. `Info.plist`의 `NSUserTrackingUsageDescription`이 없으면 iOS에서 팝업 없이 거부 처리된다.
