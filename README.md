@@ -1,5 +1,11 @@
 # 출퇴근기록장 (timesheet)
 
+[![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-3.12-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org)
+![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-lightgrey?logo=android&logoColor=white)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue)](LICENSE)
+
 버튼 한 번으로 출퇴근을 기록하고 근무시간과 연차를 자동으로 계산하는 Flutter 앱.
 
 자체 서버가 없어 **출퇴근 기록·연차·설정은 모두 기기 안(sqlite, SharedPreferences)에만** 저장됩니다.
